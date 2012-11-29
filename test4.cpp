@@ -20,12 +20,13 @@
 */
 
 
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
+#include <iostream>
+#include <sstream>
+#include <cstdio>
+#include <cstdlib>
 #include <pthread.h>
 #include <sched.h>
-#include "fifo.h"
+#include "fifo2.hpp"
 
 #if defined(FIFO_DEBUG)
 #include <assert.h>
@@ -36,7 +37,16 @@
 /****** Should be 2^N *****/
 #define MAX_CORE_NUM 8
 
-static struct queue_t queues[MAX_CORE_NUM];
+typedef queue<> queue_t;
+typedef uint64_t ELEMENT_TYPE;
+
+static queue_t queues[MAX_CORE_NUM];
+
+struct queue_times_t {
+  uint64_t start_c;
+  uint64_t stop_c;
+}
+queues_times[MAX_CORE_NUM];
 
 struct init_info {
 	uint32_t	cpu_id;
@@ -53,6 +63,31 @@ struct init_info info[MAX_CORE_NUM];
 inline uint64_t max(uint64_t a, uint64_t b)
 {
 	return (a > b) ? a : b;
+}
+
+inline uint64_t read_tsc()
+{
+        uint64_t        time;
+        uint32_t        msw   , lsw;
+        __asm__         __volatile__("rdtsc\n\t"
+                        "movl %%edx, %0\n\t"
+                        "movl %%eax, %1\n\t"
+                        :         "=r"         (msw), "=r"(lsw)
+                        :   
+                        :         "%edx"      , "%eax");
+        time = ((uint64_t) msw << 32) | lsw;
+        return time;
+}
+
+inline void wait_ticks(uint64_t ticks)
+{
+        uint64_t        current_time;
+        uint64_t        time = read_tsc();
+        time += ticks;
+        do {
+                current_time = read_tsc();
+        } while (current_time < time);
+        printf("wait_ticks\n");
 }
 
 void * consumer(void *arg)
@@ -95,10 +130,10 @@ void * consumer(void *arg)
 	printf("Consumer created...\n");
 	pthread_barrier_wait(barrier);
 
-	queues[cpu_id].start_c = read_tsc();
+	queues_times[cpu_id].start_c = read_tsc();
 
 	for (i = 1; i <= TEST_SIZE; i++) {
-		while( dequeue(&queues[cpu_id], &value) != 0 );
+		while( queues[cpu_id].dequeue(&value) != 0 );
 
 #if defined(WORKLOAD_DEBUG)
 		workload(&seed);
@@ -109,16 +144,20 @@ void * consumer(void *arg)
 		old_value = value;
 #endif
 	}
-	queues[cpu_id].stop_c = read_tsc();
+	queues_times[cpu_id].stop_c = read_tsc();
 
+  std::ostringstream os;
 #if defined(WORKLOAD_DEBUG)
-	printf("consumer: %" PRId64 " cycles/op\n", 
-		((queues[cpu_id].stop_c - queues[cpu_id].start_c) / (TEST_SIZE + 1)) \
-       		- AVG_WORKLOAD);
+  os << "consumer: "
+    << (((queues_times[cpu_id].stop_c - queues_times[cpu_id].start_c) / (TEST_SIZE + 1)) - AVG_WORKLOAD)
+    <<  " cycles/op"  << std::endl;
 #else
-	printf("consumer: %" PRId64 " cycles/op\n", 
-		((queues[cpu_id].stop_c - queues[cpu_id].start_c) / (TEST_SIZE + 1)));
+  os << "consumer: "
+    << ((queues_times[cpu_id].stop_c - queues_times[cpu_id].start_c) / (TEST_SIZE + 1))
+    <<  " cycles/op"  << std::endl;
 #endif
+
+  std::cout << os.str();
 
 	pthread_barrier_wait(barrier);
 	return NULL;
@@ -130,7 +169,7 @@ void producer(void *arg, uint32_t num)
 	uint64_t stop_p;
 	//pthread_barrier_t *barrier = (pthread_barrier_t *)arg;
 	uint64_t	i;
-	int32_t 	j;
+	uint32_t 	j;
 	cpu_set_t	cur_mask;
 	INIT_INFO * init = (INIT_INFO *) arg;
 	pthread_barrier_t *barrier = init->barrier;
@@ -148,20 +187,22 @@ void producer(void *arg, uint32_t num)
 
 	start_p = read_tsc();
 
-	for (i = 1; i <= TEST_SIZE + CONS_BATCH_SIZE; i++) {
+	for (i = 1; i <= TEST_SIZE + queue_t::consumer_batch_size(); i++) {
 		for (j=1; j<num; j++) {
-			while ( enqueue(&queues[j], (ELEMENT_TYPE)i) != 0);
+			while ( queues[j].enqueue((ELEMENT_TYPE)i) != 0);
 #if defined(INCURE_DEBUG)
 			if(i==(TEST_SIZE >> 1)) {
 				printf("Duplicating data to incur bugs\n");
-				enqueue(&queues[j], (ELEMENT_TYPE)i);
+				queues[j].enqueue( (ELEMENT_TYPE)i);
 			}
 #endif
 		}
 	}
 	stop_p = read_tsc();
 
-	printf("producer %" PRId64 " cycles/op\n", (stop_p - start_p) / ((TEST_SIZE + 1)*(num -1)));
+  std::ostringstream os;
+  os << "producer " << ((stop_p - start_p) / ((TEST_SIZE + 1)*(num -1))) << " cycles/op" << std::endl;
+  std::cout << os.str();
 
 	pthread_barrier_wait(barrier);
 }
@@ -188,9 +229,11 @@ int main(int argc, char *argv[])
 
 	srand((unsigned int)read_tsc());
 
+  /*
 	for (i=0; i<MAX_CORE_NUM; i++) {
 		queue_init(&queues[i]);
 	}
+  */
 
 	error = pthread_barrier_init(&barrier, NULL, max_th);
 	if (error != 0) {

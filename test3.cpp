@@ -2,6 +2,7 @@
 
 //#define _GNU_SOURCE
 #include <iostream>
+#include <cstdio>
 #include <cstdlib>
 #include <pthread.h>
 #include <sched.h>
@@ -24,8 +25,6 @@ int main()
 		perror("Error: sched_setaffinity");
 		return 1;
 	}
-
-  q.init();
 
   uint64_t s = 8*1024;
   for(i=1;i<s;++i){

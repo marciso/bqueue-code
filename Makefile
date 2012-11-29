@@ -19,31 +19,26 @@
  #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-CC=/usr/bin/gcc
-CXX=/usr/bin/g++
+CC=gcc
+CXX=g++
 #CFLAGS = -g -D_M64_ #-DFIFO_DEBUG #-DWORKLOAD_DEBUG
 INCLUDE = ../../include
-CFLAGS = -Wall -Werror -g -O2 -D_M64_ -I$(INCLUDE)
-
-#CFLAGS += -DRT_SCHEDULE
-#CFLAGS += -DPROD_BATCH
-CFLAGS += -DCONS_BATCH
-CFLAGS += -DBACKTRACKING
-CFLAGS += -DADAPTIVE
-#CFLAGS += -DFIFO_DEBUG
-#CFLAGS += -DWORKLOAD_DEBUG
-#CFLAGS += -DINCURE_DEBUG
+CFLAGS = -Wall -Werror -g -O3 -D_M64_ -I$(INCLUDE)
 
 CXXFLAGS = $(CFLAGS)
 
 ORG = fifo.o main.o workload.o
 
-fifo: $(ORG) $(LIB) test_cycle test2 test3
+fifo: $(ORG) $(LIB) test_cycle test2 test3 test4
 	gcc $(ORG) $(LIB) -o $@ -lpthread
 
 $(ORG): fifo.h Makefile
 
 test3.cpp: fifo2.hpp
+test4.cpp: fifo2.hpp
+
+test4: $(LIB) test4.o
+	g++ $< -o $@  -lpthread
 
 test3: $(LIB) test3.o
 	g++ $< -o $@
@@ -57,4 +52,4 @@ test_cycle: test_cycle.o workload.o
 test_cycle.o: fifo.h Makefile
 
 clean:
-	rm -f $(ORG) fifo test_cycle test_cycle.o cscope* test2 test2.o fifo2.o test3 test3.o
+	rm -f $(ORG) fifo test_cycle test_cycle.o cscope* test2 test2.o fifo2.o test3 test3.o test4 test4.o
