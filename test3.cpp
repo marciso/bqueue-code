@@ -10,10 +10,12 @@
 
 int main()
 {
+  typedef struct queue<> queue_t;
 	uint64_t	e=0,i;
 	cpu_set_t	cur_mask;
-	ELEMENT_TYPE	value;
-  struct queue queue;
+	uint64_t value;
+
+  queue_t q;
 
 	CPU_ZERO(&cur_mask);
 	CPU_SET(0, &cur_mask);
@@ -23,18 +25,18 @@ int main()
 		return 1;
 	}
 
-  queue.init();
+  q.init();
 
-  uint64_t s = 8*1024-1;
+  uint64_t s = 8*1024;
   for(i=1;i<s;++i){
-    if( queue.enqueue(i*i) != queue::SUCCESS ) {
+    if( q.enqueue(i*i) != queue_t::SUCCESS ) {
       e = i;
       break;
     }
   }
   //queue.enqueue(0) ;
 
-  while( queue.dequeue(&value) == queue::SUCCESS ) {
+  while( q.dequeue(&value) == queue_t::SUCCESS ) {
     std::cout << value << " " << sqrt( (float)value ) << std::endl;
   }
 

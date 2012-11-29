@@ -19,7 +19,8 @@
  #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-CC=gcc
+CC=/usr/bin/gcc
+CXX=/usr/bin/g++
 #CFLAGS = -g -D_M64_ #-DFIFO_DEBUG #-DWORKLOAD_DEBUG
 INCLUDE = ../../include
 CFLAGS = -Wall -Werror -g -O2 -D_M64_ -I$(INCLUDE)
@@ -42,11 +43,10 @@ fifo: $(ORG) $(LIB) test_cycle test2 test3
 
 $(ORG): fifo.h Makefile
 
-fifo2.cpp: fifo2.hpp
-test3.cpp: fifo2.o fifo2.hpp
+test3.cpp: fifo2.hpp
 
-test3: $(LIB) test3.o fifo2.o
-	g++ fifo2.o $< -o $@
+test3: $(LIB) test3.o
+	g++ $< -o $@
 
 test2: $(LIB) test2.o
 	gcc  fifo.o $< -o $@ -lm
