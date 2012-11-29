@@ -23,7 +23,9 @@ CC=gcc
 CXX=g++
 #CFLAGS = -g -D_M64_ #-DFIFO_DEBUG #-DWORKLOAD_DEBUG
 INCLUDE = ../../include
-CFLAGS = -Wall -Werror -g -O3 -D_M64_ -I$(INCLUDE)
+CFLAGS += -Wall -Werror -g -O3 -D_M64_ -I$(INCLUDE)
+
+GCCVERSION = $(shell gcc -dumpversion)
 
 CXXFLAGS = $(CFLAGS)
 
@@ -31,6 +33,9 @@ ORG = fifo.o main.o workload.o
 
 fifo: $(ORG) $(LIB) test_cycle test2 test3 test4
 	gcc $(ORG) $(LIB) -o $@ -lpthread
+
+cpu_tests:
+	for i in 3 7 15 31 ; do make clean ; CFLAGS=-DCPU_ID=$$i make; mv fifo fifo-$(GCCVERSION)-cpuid$$i ; mv test4 test4-$(GCCVERSION)-cpuid$$i ; done
 
 $(ORG): fifo.h Makefile
 

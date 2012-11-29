@@ -34,6 +34,10 @@
 
 #define TEST_SIZE 200000000
 
+#ifndef CPU_ID
+#define CPU_ID cpu_id
+#endif
+
 /****** Should be 2^N *****/
 #define MAX_CORE_NUM 8
 
@@ -109,7 +113,7 @@ void * consumer(void *arg)
 
 	/* user needs tune this according to their machine configurations. */
 	CPU_ZERO(&cur_mask);
-	CPU_SET(31, &cur_mask);
+	CPU_SET(CPU_ID, &cur_mask);
 	//cur_mask = 0x4;
         /*if(cpu_id < 4)
                 cur_mask = (0x2<<(2*cpu_id));

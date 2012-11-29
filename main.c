@@ -34,19 +34,25 @@
 #define TEST_SIZE 200000000
 
 /****** Should be 2^N *****/
-#define MAX_CORE_NUM 8
+#define MAX_CORE_NUM 32
+
+#ifndef CPU_ID
+#define CPU_ID cpu_id
+#endif
 
 static struct queue_t queues[MAX_CORE_NUM];
 
 struct init_info {
 	uint32_t	cpu_id;
 	pthread_barrier_t * barrier;
+  uint32_t  r;
 };
 
 struct init_info info[MAX_CORE_NUM];
 
 #define INIT_ID(p)	(info[p].cpu_id)
 #define INIT_BAR(p)	(info[p].barrier)
+#define INIT_RES_NUM(p) (info[p].r)
 #define INIT_PTR(p)	(&info[p])
 #define INIT_INFO struct init_info
 
@@ -55,9 +61,16 @@ inline uint64_t max(uint64_t a, uint64_t b)
 	return (a > b) ? a : b;
 }
 
+#define MAX_RESULTS (1)
+struct results {
+  uint64_t cons;
+  uint64_t prod;
+}
+results[MAX_RESULTS];
+
 void * consumer(void *arg)
 {
-	uint32_t 	cpu_id;
+	uint32_t 	cpu_id, r;
 	ELEMENT_TYPE	value;
 	cpu_set_t	cur_mask;
 	uint64_t	i;
@@ -71,10 +84,11 @@ void * consumer(void *arg)
 	INIT_INFO * init = (INIT_INFO *) arg;
 	cpu_id = init->cpu_id;
 	pthread_barrier_t *barrier = init->barrier;
+  r = init->r;
 
 	/* user needs tune this according to their machine configurations. */
 	CPU_ZERO(&cur_mask);
-	CPU_SET(31, &cur_mask);
+	CPU_SET(CPU_ID, &cur_mask);
 	//cur_mask = 0x4;
         /*if(cpu_id < 4)
                 cur_mask = (0x2<<(2*cpu_id));
@@ -115,16 +129,18 @@ void * consumer(void *arg)
 	printf("consumer: %" PRId64 " cycles/op\n", 
 		((queues[cpu_id].stop_c - queues[cpu_id].start_c) / (TEST_SIZE + 1)) \
        		- AVG_WORKLOAD);
+  results[r].cons = ((queues[cpu_id].stop_c - queues[cpu_id].start_c) / (TEST_SIZE + 1)) - AVG_WORKLOAD;
 #else
 	printf("consumer: %" PRId64 " cycles/op\n", 
 		((queues[cpu_id].stop_c - queues[cpu_id].start_c) / (TEST_SIZE + 1)));
+  results[r].cons = ((queues[cpu_id].stop_c - queues[cpu_id].start_c) / (TEST_SIZE + 1));
 #endif
 
 	pthread_barrier_wait(barrier);
 	return NULL;
 }
 
-void producer(void *arg, uint32_t num)
+void producer(void *arg, uint32_t num, uint32_t r)
 {
 	uint64_t start_p;
 	uint64_t stop_p;
@@ -163,6 +179,8 @@ void producer(void *arg, uint32_t num)
 
 	printf("producer %" PRId64 " cycles/op\n", (stop_p - start_p) / ((TEST_SIZE + 1)*(num -1)));
 
+  results[r].prod = (stop_p - start_p) / ((TEST_SIZE + 1)*(num -1));
+
 	pthread_barrier_wait(barrier);
 }
 
@@ -171,7 +189,7 @@ int main(int argc, char *argv[])
 	pthread_t	consumer_thread;
 	pthread_attr_t	consumer_attr;
 	pthread_barrier_t barrier;
-	int		error     , i, max_th = 2;
+	int		error     , i, max_th = 2, c;
 
 	if (argc > 1)   {
 		max_th = atoi(argv[1]);
@@ -203,22 +221,33 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	/* For N cores, there are N-1 fifos. */
-	for (i=1; i<max_th; i++) {
-		INIT_ID(i) = i;
-		INIT_BAR(i) = &barrier;
-		error = pthread_create(&consumer_thread, &consumer_attr, 
-					consumer, INIT_PTR(i));
-	}
-	if (error != 0) {
-		perror("BW");
-		return 1;
-	}
+  for(c = 0; c < MAX_RESULTS; ++c ) {
+    /* For N cores, there are N-1 fifos. */
+    for (i=1; i<max_th; i++) {
+      INIT_ID(i) = i;
+      INIT_BAR(i) = &barrier;
+      INIT_RES_NUM(i) = c;
+      error = pthread_create(&consumer_thread, &consumer_attr, 
+            consumer, INIT_PTR(i));
+    }
+    if (error != 0) {
+      perror("BW");
+      return 1;
+    }
 
-	INIT_ID(0) = 0;
-	INIT_BAR(0) = &barrier;
-	producer(INIT_PTR(0), max_th);
+    INIT_ID(0) = 0;
+    INIT_BAR(0) = &barrier;
+    INIT_RES_NUM(0) = c;
+    producer(INIT_PTR(0), max_th, c);
+    printf(".\n");
+  }
 	printf("Done!\n");
+
+  printf("producers: ");
+  for(c = 0; c < MAX_RESULTS; ++c ) { printf("%" PRId64 " ", results[c].prod); }
+  printf("\nconsumers: ");
+  for(c = 0; c < MAX_RESULTS; ++c ) { printf("%" PRId64 " ", results[c].cons); }
+  printf("\n");
 
 	return 0;
 }
