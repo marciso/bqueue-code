@@ -23,6 +23,8 @@
 #include "fifo.h"
 #include <sched.h>
 
+#include <stdio.h>
+
 #if defined(FIFO_DEBUG)
 #include <assert.h>
 #endif
@@ -49,6 +51,7 @@ inline void wait_ticks(uint64_t ticks)
         do {
                 current_time = read_tsc();
         } while (current_time < time);
+        printf("wait_ticks\n");
 }
 
 static ELEMENT_TYPE ELEMENT_ZERO = 0x0UL;
@@ -60,6 +63,7 @@ static ELEMENT_TYPE ELEMENT_ZERO = 0x0UL;
 void queue_init(struct queue_t *q)
 {
 	memset(q, 0, sizeof(struct queue_t));
+	//memset(q->data, 0, sizeof(q->data));
 #if defined(CONS_BATCH)
 	q->batch_history = CONS_BATCH_SIZE;
 #endif
@@ -82,6 +86,7 @@ int enqueue(struct queue_t * q, ELEMENT_TYPE value)
 			tmp_head = 0;
 
 		if ( q->data[tmp_head] ) {
+      printf("tmp_head=%d\n", tmp_head);
 			wait_ticks(CONGESTION_PENALTY);
 			return BUFFER_FULL;
 		}
@@ -133,6 +138,7 @@ static inline int backtracking(struct queue_t * q)
 	unsigned long batch_size = q->batch_history;
 	while (!(q->data[tmp_tail])) {
 
+    printf("tmp_tail=%d\n", tmp_tail);
 		wait_ticks(CONGESTION_PENALTY);
 
 		batch_size = batch_size >> 1;
@@ -150,6 +156,7 @@ static inline int backtracking(struct queue_t * q)
 
 #else
 	if ( !q->data[tmp_tail] ) {
+    printf(".2 tmp_tail=%d\n", tmp_tail);
 		wait_ticks(CONGESTION_PENALTY); 
 		return -1;
 	}

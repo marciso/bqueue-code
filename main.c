@@ -61,7 +61,9 @@ void * consumer(void *arg)
 	ELEMENT_TYPE	value;
 	cpu_set_t	cur_mask;
 	uint64_t	i;
+#if defined(WORKLOAD_DEBUG)
 	unsigned long	seed;
+#endif
 #if defined(FIFO_DEBUG)
 	ELEMENT_TYPE	old_value = 0; 
 #endif
@@ -72,7 +74,7 @@ void * consumer(void *arg)
 
 	/* user needs tune this according to their machine configurations. */
 	CPU_ZERO(&cur_mask);
-	CPU_SET(cpu_id * 2, &cur_mask);
+	CPU_SET(cpu_id, &cur_mask);
 	//cur_mask = 0x4;
         /*if(cpu_id < 4)
                 cur_mask = (0x2<<(2*cpu_id));
@@ -82,11 +84,13 @@ void * consumer(void *arg)
 
 	printf("consumer %d:  ---%d----\n", cpu_id, 2*cpu_id);
 	if (sched_setaffinity(0, sizeof(cur_mask), &cur_mask) < 0) {
-		printf("Error: sched_setaffinity\n");
+		perror("Error: sched_setaffinity");
 		return NULL;
 	}
 
+#if defined(WORKLOAD_DEBUG)
 	seed = read_tsc();
+#endif
 
 	printf("Consumer created...\n");
 	pthread_barrier_wait(barrier);
@@ -108,11 +112,11 @@ void * consumer(void *arg)
 	queues[cpu_id].stop_c = read_tsc();
 
 #if defined(WORKLOAD_DEBUG)
-	printf("consumer: %ld cycles/op\n", 
+	printf("consumer: %" PRId64 " cycles/op\n", 
 		((queues[cpu_id].stop_c - queues[cpu_id].start_c) / (TEST_SIZE + 1)) \
        		- AVG_WORKLOAD);
 #else
-	printf("consumer: %ld cycles/op\n", 
+	printf("consumer: %" PRId64 " cycles/op\n", 
 		((queues[cpu_id].stop_c - queues[cpu_id].start_c) / (TEST_SIZE + 1)));
 #endif
 
@@ -136,7 +140,7 @@ void producer(void *arg, uint32_t num)
 	CPU_SET(0, &cur_mask);
 	printf("producer %d:  ---%d----\n", 0, 1);
 	if (sched_setaffinity(0, sizeof(cur_mask), &cur_mask) < 0) {
-		printf("Error: sched_setaffinity\n");
+		perror("Error: sched_setaffinity");
 		return ;
 	}
 
@@ -157,7 +161,7 @@ void producer(void *arg, uint32_t num)
 	}
 	stop_p = read_tsc();
 
-	printf("producer %ld cycles/op\n", (stop_p - start_p) / ((TEST_SIZE + 1)*(num -1)));
+	printf("producer %" PRId64 " cycles/op\n", (stop_p - start_p) / ((TEST_SIZE + 1)*(num -1)));
 
 	pthread_barrier_wait(barrier);
 }

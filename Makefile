@@ -19,6 +19,7 @@
  #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+CC=gcc
 #CFLAGS = -g -D_M64_ #-DFIFO_DEBUG #-DWORKLOAD_DEBUG
 INCLUDE = ../../include
 CFLAGS = -Wall -Werror -g -O2 -D_M64_ -I$(INCLUDE)
@@ -32,12 +33,23 @@ CFLAGS += -DADAPTIVE
 #CFLAGS += -DWORKLOAD_DEBUG
 #CFLAGS += -DINCURE_DEBUG
 
+CXXFLAGS = $(CFLAGS)
+
 ORG = fifo.o main.o workload.o
 
-fifo: $(ORG) $(LIB) test_cycle
+fifo: $(ORG) $(LIB) test_cycle test2 test3
 	gcc $(ORG) $(LIB) -o $@ -lpthread
 
 $(ORG): fifo.h Makefile
+
+fifo2.cpp: fifo2.hpp
+test3.cpp: fifo2.o fifo2.hpp
+
+test3: $(LIB) test3.o fifo2.o
+	g++ fifo2.o $< -o $@
+
+test2: $(LIB) test2.o
+	gcc  fifo.o $< -o $@ -lm
 
 test_cycle: test_cycle.o workload.o
 	gcc $(LIB) workload.o $< -o $@
@@ -45,4 +57,4 @@ test_cycle: test_cycle.o workload.o
 test_cycle.o: fifo.h Makefile
 
 clean:
-	rm -f $(ORG) fifo test_cycle test_cycle.o cscope*
+	rm -f $(ORG) fifo test_cycle test_cycle.o cscope* test2 test2.o fifo2.o test3 test3.o

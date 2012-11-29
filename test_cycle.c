@@ -62,7 +62,7 @@ int main()
 		workload(&seed);
 	}
 	stop_c = read_tsc();
-	printf("average: %ld cycles/op\n", ((stop_c - start_c) / TEST_SIZE));
+	printf("average: %" PRId64 " cycles/op\n", ((stop_c - start_c) / TEST_SIZE));
 	return 0;
 }
 
