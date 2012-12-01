@@ -18,17 +18,17 @@
  #  You should have received a copy of the GNU General Public License
  #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-CCNAME=icc
-CC=/opt/intel/bin/icc -xHOST -ipo
-CXX=/opt/intel/bin/icpc -xHOST -ipo
-
+#CCNAME=icc
+#CC=/opt/intel/bin/icc -xHOST -ipo
+#CXX=/opt/intel/bin/icpc -xHOST -ipo
+#
 #CCNAME=gcc
 #CC=/opt/gcc-4.7.2/bin/gcc
 #CXX=/opt/gcc-4.7.2/bin/g++
 #
-#CCNAME=gcc
-#CC=gcc
-#CXX=g++
+CCNAME=gcc
+CC=gcc
+CXX=g++
 #
 #CCNAME=clang
 #CC=clang
