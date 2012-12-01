@@ -142,7 +142,7 @@ static inline int backtracking(struct queue_t * q)
 		wait_ticks(CONGESTION_PENALTY);
 
 		batch_size = batch_size >> 1;
-		if( batch_size >= 0 ) {
+		if( batch_size > 0 ) {
 			tmp_tail = q->tail + batch_size;
 			if (tmp_tail >= QUEUE_SIZE)
 				tmp_tail = 0;

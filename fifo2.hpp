@@ -180,13 +180,12 @@ private:
         wait_ticks<true, true>(CONGESTION_PENALTY_CYCLES); // give a chance for producer to extend the buffer
 
         batch_size = batch_size >> 1;
-        if( batch_size >= 0 ) {
+        if( batch_size > 0 ) {
           tmp_tail = this->tail + batch_size;
           if (tmp_tail >= QUEUE_SIZE)
             tmp_tail = 0;
         }
         else {
-          //std::cout << "backtrack: " << BACKTRACKING_ << ", adaptive: " << ADAPTIVE_ << ", returns false (1)" << std::endl;
           return false;
         }
       }
@@ -199,7 +198,6 @@ private:
     else {
       if ( ELEMENT_ZERO == this->data[tmp_tail] ) {
         wait_ticks<true, true>(CONGESTION_PENALTY_CYCLES);
-        //std::cout << "backtrack: " << BACKTRACKING_ << ", adaptive: " << ADAPTIVE_ << ", returns false (2)" << std::endl;
         return false;
       }
     }
@@ -210,7 +208,6 @@ private:
     }
     this->batch_tail = tmp_tail;
 
-    //std::cout << "backtrack: " << BACKTRACKING_ << ", adaptive: " << ADAPTIVE_ << ", returns true" << std::endl;
     return true;
   }
 
