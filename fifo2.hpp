@@ -2,8 +2,7 @@
  *  B-Queue -- An efficient and practical queueing for fast core-to-core
  *             communication
  *
- *  Copyright (C) 2011 Junchang Wang <junchang.wang@gmail.com>
- *
+ *  Copyright (C) Marcin Sobieszczanski
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
